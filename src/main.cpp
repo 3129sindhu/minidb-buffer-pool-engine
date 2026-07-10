@@ -1,179 +1,179 @@
-#include "buffer_pool_manager.h"
-#include "disk_manager.h"
-#include "free_space_map.h"
-#include "page.h"
-#include "slotted_page.h"
-#include "tuple.h"
+#include "minidb_engine.h"
 
 #include <iostream>
+#include <sstream>
 #include <string>
-#include <vector>
-
-EmployeeTuple CreateEmployee(int id) {
-    EmployeeTuple emp;
-    emp.employee_id = id;
-    emp.name = "Employee" + std::to_string(id);
-    emp.department = "CS";
-    emp.salary = 50000 + id;
-    return emp;
+void PrintHelp() {
+    std::cout << std::endl;
+    std::cout << "MiniDB Interactive CLI" << std::endl;
+    std::cout << "----------------------" << std::endl;
+    std::cout << "Commands:" << std::endl;
+    std::cout << "  insert <id> <name> <department> <salary>" << std::endl;
+    std::cout << "  get <id>" << std::endl;
+    std::cout << "  scan" << std::endl;
+    std::cout << "  workload <count> [delay_ms]" << std::endl;
+    std::cout << "  show page <page_id>" << std::endl;
+std::cout << "  show state" << std::endl;
+    std::cout << "  show buffer" << std::endl;
+    std::cout << "  show fsm" << std::endl;
+    std::cout << "  show metrics" << std::endl;
+    std::cout << "  flush" << std::endl;
+    std::cout << "  help" << std::endl;
+    std::cout << "  exit" << std::endl;
+    std::cout << "  insertbig <id>" << std::endl;
+std::cout << "  touch <id>" << std::endl;
+std::cout << "  timedget <id>" << std::endl;
+std::cout << "  delete <id>" << std::endl;
+std::cout << "  show lruk" << std::endl;
+    std::cout << std::endl;
 }
-
 int main() {
     try {
-        DiskManager disk("data/minidb.db");
-        BufferPoolManager buffer_pool(3, &disk, 2);
+        MiniDBEngine engine("data/minidb.db", 3, 2);
 
-        FreeSpaceMap fsm;
-
-        std::vector<page_id_t> created_pages;
-
-        std::cout << "MiniDB Milestone 5: Buffer Pool Manager with LRU-K"
+        std::cout << "MiniDB - In-Memory Database Engine"
                   << std::endl;
-        std::cout << "--------------------------------------------------"
+        std::cout << "Buffer pool size = 3 frames, replacement = LRU-K K=2"
                   << std::endl;
-
-        for (int id = 1; id <= 500; id++) {
-            EmployeeTuple emp = CreateEmployee(id);
-
-            std::vector<char> tuple_bytes =
-                TupleSerializer::Serialize(emp);
-
-            int required_space =
-                static_cast<int>(tuple_bytes.size()) + 8;
-
-            page_id_t target_page_id =
-                fsm.FindPageWithEnoughSpace(required_space);
-
-            Page* page = nullptr;
-
-            if (target_page_id == INVALID_PAGE_ID) {
-                page = buffer_pool.NewPage(&target_page_id);
-
-                if (page == nullptr) {
-                    std::cout << "[ERROR] Could not allocate new page."
-                              << std::endl;
-                    return 1;
-                }
-
-                created_pages.push_back(target_page_id);
-
-                SlottedPage slotted_page(page->GetData());
-                slotted_page.Init();
-
-                fsm.UpdateFreeSpace(
-                    target_page_id,
-                    slotted_page.GetFreeSpace()
-                );
-
-                std::cout << "[FSM] No existing page had enough space. "
-                          << "Created page_id=" << target_page_id
-                          << std::endl;
-            } else {
-                page = buffer_pool.FetchPage(target_page_id);
-
-                if (page == nullptr) {
-                    std::cout << "[ERROR] Could not fetch page_id="
-                              << target_page_id
-                              << std::endl;
-                    return 1;
-                }
+        PrintHelp();
+        std::string line;
+        while (true) {
+            std::cout << "minidb> ";
+            if (!std::getline(std::cin, line)) {
+                break;
+            }
+            if (line.empty()) {
+                continue;
             }
 
-            SlottedPage slotted_page(page->GetData());
+            std::istringstream iss(line);
+            std::string command;
+            iss >> command;
 
-            int slot_id = -1;
+            if (command == "insert") {
+                int id;
+                std::string name;
+                std::string department;
+                int salary;
 
-            bool inserted = slotted_page.InsertTuple(
-                tuple_bytes.data(),
-                static_cast<int>(tuple_bytes.size()),
-                slot_id
-            );
+                if (!(iss >> id >> name >> department >> salary)) {
+                    std::cout << "Usage: insert <id> <name> <department> <salary>"
+                              << std::endl;
+                    continue;
+                }
 
-            if (!inserted) {
-                std::cout << "[ERROR] Insert failed. FSM selected page_id="
-                          << target_page_id
-                          << " but it did not have enough space."
-                          << std::endl;
-                return 1;
-            }
+                engine.InsertEmployee(id, name, department, salary);
 
-            fsm.UpdateFreeSpace(
-                target_page_id,
-                slotted_page.GetFreeSpace()
-            );
+            } else if (command == "get") {
+                int id;
 
-            // We modified the page, so it becomes dirty.
-            buffer_pool.UnpinPage(target_page_id, true);
+                if (!(iss >> id)) {
+                    std::cout << "Usage: get <id>" << std::endl;
+                    continue;
+                }
 
-            if (id <= 5 || id % 100 == 0) {
-                std::cout << "[INSERT] employee_id=" << emp.employee_id
-                          << ", page_id=" << target_page_id
-                          << ", slot_id=" << slot_id
-                          << ", remaining_free_space="
-                          << slotted_page.GetFreeSpace()
-                          << " bytes"
+                engine.GetEmployee(id);
+
+            } else if (command == "scan") {
+                engine.ScanEmployees();
+
+            } else if (command == "workload") {
+                int count;
+                int delay_ms = 0;
+                if (!(iss >> count)) {
+                    std::cout << "Usage: workload <count> [delay_ms]"
+                              << std::endl;
+                    continue;
+                }
+                iss >> delay_ms;
+                engine.RunWorkload(count, delay_ms);
+            } else if (command == "explain") {
+                std::string what;
+                iss >> what;
+
+    if (what == "tuple") {
+        int id;
+        std::string name;
+        std::string department;
+        int salary;
+        if (!(iss >> id >> name >> department >> salary)) {
+            std::cout << "Usage: explain tuple <id> <name> <department> <salary>"
+                      << std::endl;
+            continue;
+        }
+        engine.ExplainTuple(id, name, department, salary);
+    } else {
+        std::cout << "Usage: explain tuple <id> <name> <department> <salary>"
+                  << std::endl;
+    } 
+    } else if (command == "insertbig") {
+    int id;
+    if (!(iss >> id)) {
+        std::cout << "Usage: insertbig <id>" << std::endl;
+        continue;
+    }
+    engine.InsertLargeEmployee(id);
+    } else if (command == "touch") {
+    int id;
+    if (!(iss >> id)) {
+        std::cout << "Usage: touch <id>" << std::endl;
+        continue;
+    }
+    engine.TouchEmployee(id);
+    } else if (command == "timedget") {
+    int id;
+    if (!(iss >> id)) {
+        std::cout << "Usage: timedget <id>" << std::endl;
+        continue;
+    }
+    engine.TimedGetEmployee(id);
+    } else if (command == "delete") {
+    int id;
+    if (!(iss >> id)) {
+        std::cout << "Usage: delete <id>" << std::endl;
+        continue;
+    }
+    engine.DeleteEmployee(id);
+} else if (command == "show") {
+    std::string what;
+    iss >> what;
+    if (what == "buffer") {
+        engine.ShowBufferPool();
+    } else if (what == "fsm") {
+        engine.ShowFreeSpaceMap();
+    } else if (what == "metrics") {
+        engine.ShowMetrics();
+    } else if (what == "page") {
+        page_id_t page_id;
+        if (!(iss >> page_id)) {
+            std::cout << "Usage: show page <page_id>" << std::endl;
+            continue;
+        }
+        engine.ShowPage(page_id);
+    } else if (what == "state") {
+        engine.ShowState();
+    } else if (what == "lruk") {
+        engine.ShowLRUK();
+    } else {
+        std::cout << "Usage: show buffer | show fsm | show metrics | show page <page_id> | show state | show lruk"
+          << std::endl;
+    } 
+}else if (command == "flush") {
+        engine.FlushAll();
+
+            } else if (command == "help") {
+                PrintHelp();
+} else if (command == "exit" || command == "quit") {
+                std::cout << "Flushing pages before exit..." << std::endl;
+        engine.FlushAll();
+            std::cout << "Goodbye." << std::endl;
+        break;
+} else {
+                std::cout << "Unknown command: " << command << std::endl;
+                std::cout << "Type 'help' to see available commands."
                           << std::endl;
             }
         }
-
-        std::cout << std::endl;
-        std::cout << "After insert workload:" << std::endl;
-
-        buffer_pool.PrintBufferPool();
-        buffer_pool.PrintMetrics();
-
-        std::cout << std::endl;
-        fsm.Print();
-
-        if (!created_pages.empty()) {
-            page_id_t first_page_id = created_pages.front();
-
-            std::cout << std::endl;
-            std::cout << "Read test 1: Fetching first page_id="
-                      << first_page_id
-                      << std::endl;
-
-            Page* page = buffer_pool.FetchPage(first_page_id);
-
-            if (page != nullptr) {
-                SlottedPage slotted_page(page->GetData());
-                slotted_page.PrintLayout();
-
-                buffer_pool.UnpinPage(first_page_id, false);
-            }
-
-            std::cout << std::endl;
-            std::cout << "Read test 2: Fetching same page again to show buffer hit"
-                      << std::endl;
-
-            page = buffer_pool.FetchPage(first_page_id);
-
-            if (page != nullptr) {
-                buffer_pool.UnpinPage(first_page_id, false);
-            }
-        }
-
-        std::cout << std::endl;
-        std::cout << "Before flushing all pages:" << std::endl;
-
-        buffer_pool.PrintBufferPool();
-        buffer_pool.PrintMetrics();
-
-        std::cout << std::endl;
-        std::cout << "Flushing all dirty pages..." << std::endl;
-
-        buffer_pool.FlushAllPages();
-
-        std::cout << std::endl;
-        std::cout << "After flushing all pages:" << std::endl;
-
-        buffer_pool.PrintBufferPool();
-        buffer_pool.PrintMetrics();
-
-        std::cout << std::endl;
-        std::cout << "Total pages in database file: "
-                  << disk.GetNumPages()
-                  << std::endl;
 
     } catch (const std::exception& ex) {
         std::cerr << "Error: " << ex.what() << std::endl;

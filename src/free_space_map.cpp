@@ -10,8 +10,7 @@ page_id_t FreeSpaceMap::FindPageWithEnoughSpace(int required_space) const {
     for (const auto& entry : free_space_) {
         page_id_t page_id = entry.first;
         int available_space = entry.second;
-
-        if (available_space >= required_space) {
+ if (available_space >= required_space) {
             return page_id;
         }
     }
@@ -21,8 +20,7 @@ page_id_t FreeSpaceMap::FindPageWithEnoughSpace(int required_space) const {
 
 int FreeSpaceMap::GetFreeSpace(page_id_t page_id) const {
     auto it = free_space_.find(page_id);
-
-    if (it == free_space_.end()) {
+ if (it == free_space_.end()) {
         return 0;
     }
 
@@ -31,7 +29,7 @@ int FreeSpaceMap::GetFreeSpace(page_id_t page_id) const {
 
 void FreeSpaceMap::Print() const {
     std::cout << "Free Space Map" << std::endl;
-    std::cout << "--------------" << std::endl;
+ std::cout << "--------------" << std::endl;
     std::cout << "Page ID | Free Space" << std::endl;
 
     for (const auto& entry : free_space_) {

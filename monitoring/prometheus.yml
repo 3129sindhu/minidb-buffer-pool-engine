@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 2s
+
+scrape_configs:
+  - job_name: "minidb"
+    static_configs:
+      - targets: ["metrics-server:9100"]

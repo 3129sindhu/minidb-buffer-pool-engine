@@ -14,4 +14,6 @@ add_executable(minidb
     src/free_space_map.cpp
     src/lru_k_replace.cpp
     src/buffer_pool_manager.cpp
+    src/metrics_exporter.cpp
+    src/minidb_engine.cpp
 )

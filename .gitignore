@@ -1,3 +1,5 @@
 build/
 data/*.db
+data/*.log
+data/*.prom
 .DS_Store

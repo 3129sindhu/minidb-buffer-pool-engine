@@ -10,7 +10,6 @@ include_directories(include)
 add_executable(minidb
     src/main.cpp
     src/disk_manager.cpp
+    src/slotted_page.cpp
+    src/free_space_map.cpp
 )
-
-
-

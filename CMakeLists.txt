@@ -12,4 +12,6 @@ add_executable(minidb
     src/disk_manager.cpp
     src/slotted_page.cpp
     src/free_space_map.cpp
+    src/lru_k_replace.cpp
+    src/buffer_pool_manager.cpp
 )

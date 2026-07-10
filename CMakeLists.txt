@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(MiniDB)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include_directories(include)
+
+add_executable(minidb
+    src/main.cpp
+    src/disk_manager.cpp
+)
+
+
+

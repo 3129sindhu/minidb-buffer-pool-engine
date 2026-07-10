@@ -1,0 +1,9 @@
+services:
+  minidb-dev:
+    build: .
+    container_name: minidb-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true

@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MiniDB Runtime Visualizer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, Arial, sans-serif;
+    background: #0b1320;
+    color: #f5f7fb;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #animationLayer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .fly-token {
+    position: fixed;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    box-shadow: 0 0 18px currentColor;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    opacity: 0.95;
+  }
+
+  .fly-token.insert { background: #57ffb8; color: #57ffb8; }
+  .fly-token.read { background: #67c8ff; color: #67c8ff; }
+  .fly-token.flush { background: #ffb347; color: #ffb347; }
+  .fly-token.evict { background: #ff6b6b; color: #ff6b6b; }
+
+  .flashGreen { animation: flashGreen 0.8s ease; }
+  .flashRed { animation: flashRed 0.8s ease; }
+  .flashBlue { animation: flashBlue 0.8s ease; }
+
+  @keyframes flashGreen {
+    0% { box-shadow: 0 0 0 rgba(87,255,184,0); }
+    50% { box-shadow: 0 0 38px rgba(87,255,184,0.9); }
+    100% { box-shadow: 0 0 0 rgba(87,255,184,0); }
+  }
+
+  @keyframes flashRed {
+    0% { box-shadow: 0 0 0 rgba(255,107,107,0); }
+    50% { box-shadow: 0 0 38px rgba(255,107,107,0.95); }
+    100% { box-shadow: 0 0 0 rgba(255,107,107,0); }
+  }
+
+  @keyframes flashBlue {
+    0% { box-shadow: 0 0 0 rgba(103,200,255,0); }
+    50% { box-shadow: 0 0 38px rgba(103,200,255,0.9); }
+    100% { box-shadow: 0 0 0 rgba(103,200,255,0); }
+  }
+
+
+  .flow-strip {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(135px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .flow-arrow {
+    min-height: 72px;
+    border-radius: 18px;
+    border: 2px solid rgba(255,255,255,0.18);
+    background: rgba(7,14,31,0.88);
+    color: #e6edf8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 950;
+    line-height: 1.25;
+    letter-spacing: .15px;
+    transition: all 0.25s ease;
+    text-align: center;
+    padding: 12px 14px;
+  }
+
+  .flow-arrow.arrowActive {
+    border-color: rgba(139, 238, 255, 1);
+    color: #d9fbff;
+    background: rgba(77,235,255,0.24);
+    box-shadow: 0 0 34px rgba(77,235,255,0.40);
+    transform: translateY(-2px) scale(1.03);
+  }
+
+  .flow-arrow.arrowInsert {
+    border-color: rgba(87,255,184,1);
+    color: #e0fff0;
+    background: rgba(87,255,184,0.24);
+    box-shadow: 0 0 34px rgba(87,255,184,0.40);
+    transform: translateY(-2px) scale(1.03);
+  }
+
+  .flow-arrow.arrowFlush {
+    border-color: rgba(255,179,71,1);
+    color: #fff0d4;
+    background: rgba(255,179,71,0.24);
+    box-shadow: 0 0 34px rgba(255,179,71,0.42);
+    transform: translateY(-2px) scale(1.03);
+  }
+
+  .flow-arrow.arrowEvict {
+    border-color: rgba(255,107,107,1);
+    color: #ffe0e0;
+    background: rgba(255,107,107,0.24);
+    box-shadow: 0 0 34px rgba(255,107,107,0.42);
+    transform: translateY(-2px) scale(1.03);
+  }
+
+  .current-step-card {
+    min-height: 54px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(7,14,31,0.84);
+    color: #f5f7fb;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  .current-step-label {
+    color: #8beeff;
+    font-weight: 950;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .6px;
+    white-space: nowrap;
+  }
+
+  .app {
+    height: 100vh;
+    padding: 18px;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 14px;
+  }
+  .header, .panel {
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 20px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.28);
+    backdrop-filter: blur(14px);
+  }
+  .header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .title { font-size: 25px; font-weight: 900; }
+  .sub { color: #b8c4d9; margin-top: 4px; font-size: 13px; }
+  .pill {
+    padding: 8px 13px;
+    border-radius: 999px;
+    color: #78ffc8;
+    background: rgba(57,255,171,0.12);
+    border: 1px solid rgba(57,255,171,0.35);
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .main {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 14px;
+  }
+  .panel { padding: 16px; min-height: 0; }
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .node {
+    height: 122px;
+    background: rgba(7,14,31,0.78);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 18px;
+    padding: 13px;
+    transition: all .25s ease;
+    overflow: hidden;
+    position: relative;
+  }
+  .node.active, .box.active, .frame.active {
+    border-color: rgba(77,235,255,0.9);
+    box-shadow: 0 0 34px rgba(77,235,255,0.28);
+    transform: translateY(-2px);
+  }
+  .node-label {
+    color: #8bd7ff;
+    font-size: 12px;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-bottom: 10px;
+  }
+  .node-main { font-size: 22px; font-weight: 900; margin-bottom: 7px; }
+  .node-sub { color: #c3cce0; font-size: 13px; line-height: 1.35; }
+  .lower {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .box {
+    min-height: 0;
+    background: rgba(7,14,31,0.78);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 18px;
+    padding: 14px;
+    transition: all .25s ease;
+  }
+  .box-title { font-weight: 900; margin-bottom: 12px; color: white; }
+  .page {
+    height: 300px;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 10px;
+    display: grid;
+    grid-template-rows: 44px 1fr 70px;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+  }
+  .page-header {
+    border-radius: 11px;
+    background: rgba(255,255,255,0.09);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b8c4d9;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .page-mid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    min-height: 0;
+  }
+  .slots {
+    background: rgba(124, 92, 255, 0.16);
+    border-radius: 11px;
+    padding: 8px;
+    overflow: auto;
+    font-size: 12px;
+  }
+  .slot {
+    padding: 6px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.13);
+  }
+  .slot.deleted {
+    background: rgba(255,82,82,0.16);
+    border-color: rgba(255,82,82,0.55);
+    color: #ffb5b5;
+  }
+  .free {
+    background: rgba(80,180,255,0.14);
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #aee9ff;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+    padding: 10px;
+  }
+  .tuple {
+    background: rgba(87,255,184,0.14);
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #a6ffd8;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+    padding: 10px;
+  }
+  .frames { display: grid; gap: 10px; }
+  .frame {
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.13);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    transition: all .25s ease;
+  }
+  .mini-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 14px;
+    padding: 11px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: #b8c4d9;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .metric-value { font-size: 18px; font-weight: 950; }
+
+  .all-pages {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 12px;
+    max-height: 235px;
+    overflow: auto;
+  }
+
+  .all-pages-title {
+    font-weight: 950;
+    color: white;
+    margin-bottom: 4px;
+  }
+
+  .all-pages-sub {
+    color: #b8c4d9;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .all-pages-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .page-mini-card {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(7,14,31,0.62);
+    border-radius: 13px;
+    padding: 10px;
+  }
+
+  .page-mini-card.current {
+    border-color: rgba(77,235,255,0.85);
+    box-shadow: 0 0 18px rgba(77,235,255,0.18);
+  }
+
+  .page-mini-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 950;
+    margin-bottom: 7px;
+  }
+
+  .page-mini-badge {
+    font-size: 11px;
+    color: #8beeff;
+    border: 1px solid rgba(139,238,255,0.35);
+    background: rgba(139,238,255,0.10);
+    border-radius: 999px;
+    padding: 4px 7px;
+  }
+
+  .page-mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .page-mini-stat {
+    border-radius: 9px;
+    background: rgba(255,255,255,0.055);
+    padding: 7px;
+  }
+
+  .page-mini-label {
+    color: #b8c4d9;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 850;
+    letter-spacing: .4px;
+  }
+
+  .page-mini-value {
+    color: #f5f7fb;
+    font-weight: 950;
+    font-size: 13px;
+    margin-top: 3px;
+  }
+
+  .page-mini-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .page-mini-slot {
+    font-size: 11px;
+    border-radius: 999px;
+    padding: 4px 7px;
+    background: rgba(87,255,184,0.12);
+    color: #a6ffd8;
+    border: 1px solid rgba(87,255,184,0.30);
+  }
+
+  .page-mini-slot.deleted {
+    background: rgba(255,82,82,0.13);
+    color: #ffb5b5;
+    border-color: rgba(255,82,82,0.42);
+  }
+
+  .empty-pages {
+    color: #b8c4d9;
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .event {
+    overflow: auto;
+  }
+  .event-type {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(77,235,255,0.14);
+    border: 1px solid rgba(77,235,255,0.38);
+    color: #8beeff;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .event-msg {
+    font-size: 22px;
+    font-weight: 950;
+    line-height: 1.25;
+    margin-bottom: 12px;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: 125px 1fr;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+  }
+  .key { color: #8bd7ff; font-weight: 800; }
+  .value { color: #f4f7fb; word-break: break-word; }
+  .history {
+    margin-top: 14px;
+    max-height: 180px;
+    overflow: auto;
+    color: #cdd7ea;
+    font-size: 12px;
+  }
+  .history-row {
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  @media (max-width: 1000px) {
+    body { overflow: auto; }
+    .app { height: auto; }
+    .main, .lower, .pipeline, .flow-strip { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="animationLayer"></div>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="title">MiniDB Runtime Visualizer</div>
+      <div class="sub">Simple arrow visualization from real MiniDB execution events</div>
+    </div>
+    <div class="pill" id="connectionStatus">Waiting for events...</div>
+  </div>
+
+  <div class="flow-strip">
+    <div class="flow-arrow" id="arrow-row-serializer">Logical Row → Serializer</div>
+    <div class="flow-arrow" id="arrow-serializer-fsm">Serialized Tuple → FSM Check</div>
+    <div class="flow-arrow" id="arrow-fsm-decision">FSM Selects / Allocates Page</div>
+    <div class="flow-arrow" id="arrow-disk-buffer">Disk Page → Buffer Pool</div>
+    <div class="flow-arrow" id="arrow-serializer-page">Tuple Bytes → Slotted Page</div>
+    <div class="flow-arrow" id="arrow-buffer-disk">Dirty Page → Disk</div>
+    <div class="flow-arrow" id="arrow-buffer-row">Buffer Pool → Result Row</div>
+  </div>
+
+  <div class="current-step-card">
+    <span class="current-step-label">Current internal step</span>
+    <span id="currentInternalStep">Waiting for MiniDB command...</span>
+  </div>
+
+
+  <div class="main">
+    <div class="panel">
+      <div class="pipeline">
+        <div class="node" id="node-row">
+          <div class="node-label">Logical row</div>
+          <div class="node-main" id="rowMain">Employee</div>
+          <div class="node-sub" id="rowSub">Waiting for tuple...</div>
+        </div>
+        <div class="node" id="node-serializer">
+          <div class="node-label">Serializer</div>
+          <div class="node-main" id="tupleSize">0 bytes</div>
+          <div class="node-sub" id="hexPreview">row → bytes</div>
+        </div>
+        <div class="node" id="node-fsm">
+          <div class="node-label">Free space map</div>
+          <div class="node-main" id="fsmMain">Page ?</div>
+          <div class="node-sub" id="fsmSub">chooses page by free space</div>
+        </div>
+        <div class="node" id="node-disk">
+          <div class="node-label">Disk manager</div>
+          <div class="node-main" id="diskMain">DB File</div>
+          <div class="node-sub" id="diskSub">page read/write path</div>
+        </div>
+      </div>
+
+      <div class="lower">
+        <div class="box" id="node-page">
+          <div class="box-title">Slotted Page</div>
+          <div class="page">
+            <div class="page-header" id="pageHeader">Page header: page_id = -</div>
+            <div class="page-mid">
+              <div class="slots" id="slots"><div class="slot">No slots yet</div></div>
+              <div class="free" id="freeSpace">Free space</div>
+            </div>
+            <div class="tuple" id="tupleArea">Tuple bytes grow from bottom</div>
+          </div>
+        </div>
+
+        <div class="box" id="node-buffer">
+          <div class="box-title">Buffer Pool Memory</div>
+          <div class="frames">
+            <div class="frame" id="frame-0"><span>Frame 0</span><span id="frame0text">empty</span></div>
+            <div class="frame" id="frame-1"><span>Frame 1</span><span id="frame1text">empty</span></div>
+            <div class="frame" id="frame-2"><span>Frame 2</span><span id="frame2text">empty</span></div>
+          </div>
+          <div class="mini-metrics">
+            <div class="metric">
+              <div class="metric-label">Fetch path</div>
+              <div class="metric-value" id="fetchPath">-</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Fetch time</div>
+              <div class="metric-value" id="fetchTime">-</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">LRU-K victim</div>
+              <div class="metric-value" id="victimInfo">-</div>
+            </div>
+          </div>
+
+          <div class="all-pages">
+            <div class="all-pages-title">All Pages Overview</div>
+            <div class="all-pages-sub">Keeps page details separately, not only the latest page</div>
+            <div id="allPagesList" class="all-pages-list">
+              <div class="empty-pages">No pages created yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel event">
+      <div class="event-type" id="eventType">No event</div>
+      <div class="event-msg" id="eventMessage">Run MiniDB commands to see live internal animation.</div>
+      <div id="eventFields"></div>
+      <div class="history" id="history"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let processedCount = 0;
+let initialized = false;
+const state = {
+  frames: {0: "empty", 1: "empty", 2: "empty"},
+  currentPageId: null,
+  pageSlots: {},
+  pageFreeSpace: {},
+  history: []
+};
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function clearActive() {
+  document.querySelectorAll(".active").forEach(el => el.classList.remove("active"));
+}
+
+function activate(ids) {
+  clearActive();
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("active");
+  });
+}
+
+function getCenter(el) {
+  const rect = el.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function clearArrows() {
+  document.querySelectorAll(".flow-arrow").forEach(el => {
+    el.classList.remove("arrowActive", "arrowInsert", "arrowFlush", "arrowEvict");
+  });
+}
+
+function highlightArrow(id, type = "read") {
+  clearArrows();
+
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  if (type === "insert") {
+    el.classList.add("arrowInsert");
+  } else if (type === "flush") {
+    el.classList.add("arrowFlush");
+  } else if (type === "evict") {
+    el.classList.add("arrowEvict");
+  } else {
+    el.classList.add("arrowActive");
+  }
+
+  setTimeout(() => {
+    el.classList.remove("arrowActive", "arrowInsert", "arrowFlush", "arrowEvict");
+  }, 1200);
+}
+
+function setInternalStep(text) {
+  setText("currentInternalStep", text);
+}
+
+
+function animateFly(fromId, toId, tokenClass = "read", duration = 700) {
+
+  const map = {
+    "node-row->node-serializer": "arrow-row-serializer",
+    "node-serializer->node-fsm": "arrow-serializer-fsm",
+    "node-fsm->node-page": "arrow-fsm-decision",
+    "node-serializer->node-page": "arrow-serializer-page",
+    "node-disk->node-buffer": "arrow-disk-buffer",
+    "node-buffer->node-disk": "arrow-buffer-disk",
+    "node-buffer->node-row": "arrow-buffer-row"
+  };
+
+  const arrowId = map[`${fromId}->${toId}`];
+
+  if (arrowId) {
+    highlightArrow(arrowId, tokenClass);
+  }
+}
+
+function flashElement(id, className) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(() => el.classList.remove(className), 850);
+}
+
+function normalizePageId(pageId) {
+  if (pageId === undefined || pageId === null || pageId === "") return null;
+  return String(pageId);
+}
+
+function ensurePage(pageId) {
+  const normalized = normalizePageId(pageId);
+  if (normalized === null) return null;
+
+  if (!state.pageSlots[normalized]) {
+    state.pageSlots[normalized] = [];
+  }
+
+  return normalized;
+}
+
+function setCurrentPage(pageId) {
+  const normalized = ensurePage(pageId);
+  if (normalized === null) return;
+
+  if (state.currentPageId !== normalized) {
+    state.currentPageId = normalized;
+    renderSlots();
+    setText("pageHeader", `Page header: page_id = ${normalized}`);
+
+    if (state.pageFreeSpace[normalized] !== undefined) {
+      setText("freeSpace", `${state.pageFreeSpace[normalized]} bytes free`);
+    } else {
+      setText("freeSpace", "Free space");
+    }
+
+    setText("tupleArea", summarizePageBytes(normalized));
+  }
+}
+
+function getCurrentSlots() {
+  if (state.currentPageId === null) return [];
+  return state.pageSlots[state.currentPageId] || [];
+}
+
+function summarizePageBytes(pageId) {
+  const normalized = normalizePageId(pageId);
+  const slots = normalized && state.pageSlots[normalized] ? state.pageSlots[normalized] : [];
+
+  let activeBytes = 0;
+  let deletedBytes = 0;
+
+  for (const slot of slots) {
+    const size = Number(slot.size);
+    if (Number.isNaN(size)) continue;
+
+    if (slot.status === "DELETED") {
+      deletedBytes += size;
+    } else {
+      activeBytes += size;
+    }
+  }
+
+  return `active bytes: ${activeBytes} | deleted bytes: ${deletedBytes}`;
+}
+
+function renderSlots() {
+  const slotsEl = document.getElementById("slots");
+  const slots = getCurrentSlots();
+
+  if (!slots.length) {
+    slotsEl.innerHTML = '<div class="slot">No slots for this page yet</div>';
+    setText("tupleArea", state.currentPageId === null ? "Tuple bytes grow from bottom" : summarizePageBytes(state.currentPageId));
+    renderAllPages();
+    return;
+  }
+
+  slotsEl.innerHTML = slots.map(slot => {
+    const cls = slot.status === "DELETED" ? "slot deleted" : "slot";
+    const byteLabel = slot.status === "DELETED" ? "old bytes" : "bytes";
+    return `<div class="${cls}">Slot ${slot.slot_id}: ${slot.status}<br/>offset ${slot.offset || "-"} · ${slot.size || "-"} ${byteLabel}</div>`;
+  }).join("");
+
+  setText("tupleArea", summarizePageBytes(state.currentPageId));
+  renderAllPages();
+}
+
+function renderAllPages() {
+  const list = document.getElementById("allPagesList");
+  if (!list) return;
+
+  const pageIds = Object.keys(state.pageSlots)
+    .sort((a, b) => Number(a) - Number(b));
+
+  if (!pageIds.length) {
+    list.innerHTML = '<div class="empty-pages">No pages created yet</div>';
+    return;
+  }
+
+  list.innerHTML = pageIds.map(pageId => {
+    const slots = state.pageSlots[pageId] || [];
+    const activeSlots = slots.filter(slot => slot.status !== "DELETED");
+    const deletedSlots = slots.filter(slot => slot.status === "DELETED");
+
+    let activeBytes = 0;
+    let deletedBytes = 0;
+
+    for (const slot of slots) {
+      const size = Number(slot.size);
+      if (Number.isNaN(size)) continue;
+
+      if (slot.status === "DELETED") deletedBytes += size;
+      else activeBytes += size;
+    }
+
+    const freeSpace = state.pageFreeSpace[pageId] !== undefined
+      ? `${state.pageFreeSpace[pageId]} B`
+      : "-";
+
+    const slotBadges = slots.length
+      ? slots.map(slot => {
+          const cls = slot.status === "DELETED" ? "page-mini-slot deleted" : "page-mini-slot";
+          return `<span class="${cls}">S${slot.slot_id}: ${slot.status}</span>`;
+        }).join("")
+      : '<span class="page-mini-slot">No slots</span>';
+
+    const currentClass = pageId === state.currentPageId ? "page-mini-card current" : "page-mini-card";
+    const currentBadge = pageId === state.currentPageId ? '<span class="page-mini-badge">current</span>' : "";
+
+    return `
+      <div class="${currentClass}">
+        <div class="page-mini-head">
+          <span>Page ${pageId}</span>
+          ${currentBadge}
+        </div>
+        <div class="page-mini-stats">
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Active slots</div>
+            <div class="page-mini-value">${activeSlots.length}</div>
+          </div>
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Deleted</div>
+            <div class="page-mini-value">${deletedSlots.length}</div>
+          </div>
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Free</div>
+            <div class="page-mini-value">${freeSpace}</div>
+          </div>
+        </div>
+        <div class="page-mini-stats">
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Active bytes</div>
+            <div class="page-mini-value">${activeBytes} B</div>
+          </div>
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Deleted bytes</div>
+            <div class="page-mini-value">${deletedBytes} B</div>
+          </div>
+          <div class="page-mini-stat">
+            <div class="page-mini-label">Total slots</div>
+            <div class="page-mini-value">${slots.length}</div>
+          </div>
+        </div>
+        <div class="page-mini-slots">${slotBadges}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+
+function updateFrames(frameId, pageId, dirty) {
+  if (frameId === undefined || frameId === null || frameId === "") return;
+  const n = Number(frameId);
+  if (Number.isNaN(n)) return;
+  state.frames[n] = pageId !== undefined && pageId !== "" ? `Page ${pageId}${dirty === "true" ? " · DIRTY" : ""}` : "empty";
+  for (let i = 0; i < 3; i++) {
+    setText(`frame${i}text`, state.frames[i]);
+    const el = document.getElementById(`frame-${i}`);
+    if (el) el.classList.toggle("active", i === n);
+  }
+}
+
+function updateEventPanel(event) {
+  setText("eventType", event.type || "event");
+  setText("eventMessage", event.message || "");
+  document.getElementById("eventFields").innerHTML =
+    Object.keys(event)
+      .filter(k => !["ts_ms", "type", "message"].includes(k))
+      .map(k => `<div class="kv"><div class="key">${k}</div><div class="value">${event[k]}</div></div>`)
+      .join("");
+
+  state.history.unshift(`${event.type}: ${event.message}`);
+  state.history = state.history.slice(0, 12);
+  document.getElementById("history").innerHTML =
+    state.history.map(h => `<div class="history-row">${h}</div>`).join("");
+}
+
+function applyEvent(event) {
+  updateEventPanel(event);
+  setText("connectionStatus", "Live events connected");
+
+  if (event.type === "serialize") {
+    activate(["node-row", "node-serializer"]);
+    animateFly("node-row", "node-serializer", "read", 700);
+    flashElement("node-serializer", "flashBlue");
+    setInternalStep("Logical row is converted into serialized tuple bytes.");
+
+    setText("rowMain", `ID ${event.employee_id || "-"}`);
+    setText("rowSub", `${event.name || "name"} | ${event.department || "dept"} | salary ${event.salary || "-"}`);
+    if (event.tuple_size_bytes) setText("tupleSize", `${event.tuple_size_bytes} bytes`);
+    if (event.hex_preview) setText("hexPreview", event.hex_preview);
+  }
+
+  if (event.type === "fsm_check") {
+    activate(["node-fsm"]);
+    animateFly("node-serializer", "node-fsm", "read", 700);
+    flashElement("node-fsm", "flashBlue");
+    setInternalStep("Free Space Map checks whether an existing page has enough space.");
+
+    setText("fsmMain", `Needs ${event.required_space_bytes || "?"} bytes`);
+    setText("fsmSub", "checking pages before insert");
+  }
+
+  if (event.type === "page_allocate") {
+    activate(["node-fsm", "node-disk", "node-buffer"]);
+    highlightArrow("arrow-fsm-decision", "read");
+    setTimeout(() => highlightArrow("arrow-disk-buffer", "read"), 450);
+    flashElement("node-buffer", "flashBlue");
+    setInternalStep("FSM found no suitable page, so DiskManager allocates a new page and loads it into the buffer pool.");
+
+    setText("fsmMain", event.page_id ? `New Page ${event.page_id}` : "New Page");
+    setText("fsmSub", "no existing page had enough space");
+    setText("diskMain", event.page_id ? `Allocated Page ${event.page_id}` : "Allocated page");
+    setText("diskSub", "new page moved into buffer memory");
+    ensurePage(event.page_id);
+    renderAllPages();
+    updateFrames(event.frame_id, event.page_id, event.dirty || "true");
+  }
+
+  if (event.type === "fsm_reuse") {
+    activate(["node-fsm"]);
+    highlightArrow("arrow-fsm-decision", "insert");
+    flashElement("node-fsm", "flashGreen");
+    setInternalStep("FSM selected an existing page. No new disk page is allocated.");
+
+    setText("fsmMain", `Reuse Page ${event.page_id || "?"}`);
+    setText("fsmSub", `before insert: ${event.free_space_bytes || "?"} bytes free`);
+    const pageId = ensurePage(event.page_id);
+    if (pageId !== null && event.free_space_bytes !== undefined) {
+      state.pageFreeSpace[pageId] = event.free_space_bytes;
+    }
+    renderAllPages();
+
+    setText("diskMain", "No disk allocation");
+    setText("diskSub", "existing page reused from FSM");
+  }
+
+  if (event.type === "insert") {
+    activate(["node-page", "node-buffer"]);
+    animateFly("node-serializer", "node-page", "insert", 850);
+    flashElement("node-page", "flashGreen");
+    setInternalStep("Serialized tuple bytes are written into a slot inside the selected slotted page.");
+
+    const pageId = ensurePage(event.page_id);
+    setCurrentPage(pageId);
+
+    setText("pageHeader", `Page header: page_id = ${pageId || "-"}`);
+
+    if (pageId !== null && event.page_free_space_bytes !== undefined) {
+      state.pageFreeSpace[pageId] = event.page_free_space_bytes;
+    }
+
+    setText("freeSpace", `after insert: ${event.page_free_space_bytes || "?"} bytes free`);
+
+    const slotId = event.slot_id || "0";
+    const pageSlots = pageId !== null ? state.pageSlots[pageId] : [];
+    const existingIndex = pageSlots.findIndex(s => s.slot_id === slotId);
+    const slot = {
+      slot_id: slotId,
+      status: "ACTIVE",
+      offset: event.tuple_offset || "-",
+      size: event.tuple_size_bytes || "-"
+    };
+
+    if (existingIndex >= 0) pageSlots[existingIndex] = slot;
+    else pageSlots.push(slot);
+
+    renderSlots();
+    setText("tupleArea", `inserted ${event.tuple_size_bytes || "?"} bytes | ${summarizePageBytes(pageId)}`);
+    updateFrames(event.frame_id, event.page_id, "true");
+  }
+
+  if (event.type === "delete") {
+    activate(["node-page", "node-buffer"]);
+    flashElement("node-page", "flashRed");
+    setInternalStep("Delete marks the slot as a tombstone; tuple bytes remain until compaction/vacuum.");
+
+    const pageId = ensurePage(event.page_id);
+    setCurrentPage(pageId);
+
+    const slotId = event.slot_id || "0";
+    const pageSlots = pageId !== null ? state.pageSlots[pageId] : [];
+    const idx = pageSlots.findIndex(s => s.slot_id === slotId);
+
+    if (idx >= 0) {
+      pageSlots[idx].status = "DELETED";
+      if (event.tuple_size_bytes !== undefined && event.tuple_size_bytes !== "") {
+        pageSlots[idx].size = event.tuple_size_bytes;
+      }
+    } else {
+      pageSlots.push({
+        slot_id: slotId,
+        status: "DELETED",
+        offset: event.tuple_offset || "-",
+        size: event.tuple_size_bytes || "-"
+      });
+    }
+
+    if (pageId !== null && event.page_free_space_bytes !== undefined) {
+      state.pageFreeSpace[pageId] = event.page_free_space_bytes;
+    }
+
+    renderSlots();
+    setText("pageHeader", `Page header: page_id = ${pageId || "-"}`);
+
+    if (event.page_free_space_bytes !== undefined) {
+      setText("freeSpace", `after delete: ${event.page_free_space_bytes} bytes free`);
+    }
+
+    setText(
+      "tupleArea",
+      `deleted ${event.tuple_size_bytes || "old"} bytes as tombstone | ${summarizePageBytes(pageId)}`
+    );
+  }
+
+  if (event.type === "buffer_hit") {
+    activate(["node-buffer"]);
+    flashElement("node-buffer", "flashGreen");
+    setInternalStep("Buffer hit: page is already in memory, so no disk read is needed.");
+    setText("fetchPath", "MEMORY HIT");
+    updateFrames(event.frame_id, event.page_id, event.dirty || "false");
+  }
+
+  if (event.type === "buffer_miss") {
+    activate(["node-buffer", "node-disk"]);
+    animateFly("node-disk", "node-buffer", "read", 950);
+    flashElement("node-disk", "flashBlue");
+    flashElement("node-buffer", "flashBlue");
+    setInternalStep("Buffer miss: requested page is not in memory, so DiskManager must read it.");
+
+    setText("fetchPath", "DISK MISS");
+    setText("diskMain", `Read Page ${event.page_id || "?"}`);
+    setText("diskSub", "page loaded from DB file");
+  }
+
+  if (event.type === "page_loaded") {
+    activate(["node-buffer", "node-disk"]);
+    animateFly("node-disk", "node-buffer", "read", 800);
+    setInternalStep("Disk page has been loaded into a buffer pool frame.");
+    updateFrames(event.frame_id, event.page_id, "false");
+  }
+
+  if (event.type === "timed_fetch") {
+    if (event.fetch_path === "BUFFER_HIT_MEMORY") {
+      activate(["node-buffer"]);
+      animateFly("node-buffer", "node-row", "read", 650);
+      flashElement("node-buffer", "flashGreen");
+      setInternalStep("Timed fetch served from buffer pool memory.");
+      setText("fetchPath", "MEMORY");
+    } else {
+      activate(["node-disk", "node-buffer"]);
+      animateFly("node-disk", "node-buffer", "read", 850);
+      setTimeout(() => animateFly("node-buffer", "node-row", "read", 650), 300);
+      flashElement("node-disk", "flashBlue");
+      setInternalStep("Timed fetch used disk path first, then returned the tuple from the buffer pool.");
+      setText("fetchPath", "DISK");
+    }
+    setText("fetchTime", `${event.fetch_time_us || "?"} μs`);
+  }
+
+  if (event.type === "touch") {
+    activate(["node-buffer"]);
+    flashElement("node-buffer", "flashGreen");
+    setInternalStep("Touch updates LRU-K access history for the page containing this tuple.");
+  }
+
+  if (event.type === "lruk_eviction") {
+    activate(["node-buffer", "node-disk"]);
+    setInternalStep("LRU-K selected a colder unpinned page as the eviction victim.");
+    setText("victimInfo", `F${event.victim_frame || "?"} / P${event.victim_page || "?"}`);
+    if (event.victim_frame !== undefined) {
+      flashElement(`frame-${event.victim_frame}`, "flashRed");
+    }
+    animateFly("node-buffer", "node-disk", "evict", 900);
+  }
+
+  if (event.type === "dirty_flush") {
+    activate(["node-disk", "node-buffer"]);
+    animateFly("node-buffer", "node-disk", "flush", 900);
+    flashElement("node-disk", "flashRed");
+    setInternalStep("Dirty page is written back from buffer pool memory to the disk file.");
+
+    setText("diskMain", `Flushed Page ${event.page_id || "?"}`);
+    setText("diskSub", "dirty page written to disk");
+  }
+
+  if (event.type === "flush_start") {
+    activate(["node-buffer", "node-disk"]);
+    flashElement("node-buffer", "flashBlue");
+  }
+
+  if (event.type === "flush_complete") {
+    activate(["node-disk"]);
+    flashElement("node-disk", "flashGreen");
+  }
+}
+
+async function pollEvents() {
+  try {
+    const response = await fetch(`/events?t=${Date.now()}`);
+    const text = await response.text();
+    const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
+
+    /*
+      Important demo behavior:
+      On page load, do NOT replay old events already present in data/events.jsonl.
+      Start watching from the current end of the file, then animate only events
+      created after the visualizer is open.
+    */
+    if (!initialized) {
+      processedCount = lines.length;
+      initialized = true;
+
+      if (lines.length === 0) {
+        setText("connectionStatus", "Waiting for MiniDB events...");
+      } else {
+        setText("connectionStatus", `Ready. Ignoring ${lines.length} old events. Run a MiniDB command.`);
+      }
+
+      return;
+    }
+
+    /*
+      If the events file is deleted/truncated for a clean demo,
+      reset the visualizer and wait for new events.
+    */
+    if (lines.length < processedCount) {
+      processedCount = lines.length;
+      state.history = [];
+      state.currentPageId = null;
+      state.pageSlots = {};
+      state.pageFreeSpace = {};
+      renderSlots();
+      setText("pageHeader", "Page header: page_id = -");
+      setText("freeSpace", "Free space");
+      setText("tupleArea", "Tuple bytes grow from bottom");
+      setText("connectionStatus", "Events reset. Waiting for MiniDB commands...");
+      return;
+    }
+
+    if (lines.length > processedCount) {
+      const newLines = lines.slice(processedCount);
+      processedCount = lines.length;
+
+      for (const line of newLines) {
+        try { applyEvent(JSON.parse(line)); }
+        catch (e) { console.error("Bad event line", line, e); }
+      }
+    }
+
+    if (lines.length === 0) {
+      setText("connectionStatus", "Waiting for MiniDB events...");
+    }
+  } catch (e) {
+    setText("connectionStatus", "Visualizer disconnected");
+  }
+}
+
+setInterval(pollEvents, 700);
+pollEvents();
+</script>
+</body>
+</html>

@@ -8,36 +8,14 @@ services:
     stdin_open: true
     tty: true
 
-  metrics-server:
+  visualizer-server:
     image: python:3.11-slim
-    container_name: minidb-metrics-server
+    container_name: minidb-visualizer-server
     working_dir: /app
     volumes:
       - .:/app
-    command: python monitoring/metrics_server.py
+    command: python monitoring/visualizer_server.py
     ports:
       - "9100:9100"
     profiles:
       - monitoring
-
-  prometheus:
-    image: prom/prometheus
-    container_name: minidb-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-    profiles:
-      - monitoring
-    depends_on:
-      - metrics-server
-
-  grafana:
-    image: grafana/grafana
-    container_name: minidb-grafana
-    ports:
-      - "3000:3000"
-    profiles:
-      - monitoring
-    depends_on:
-      - prometheus

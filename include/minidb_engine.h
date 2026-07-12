@@ -17,47 +17,72 @@ public:
         int buffer_pool_size = 3,
         int replacer_k = 2
     );
+
     bool InsertEmployee(
         int employee_id,
         const std::string& name,
         const std::string& department,
         int salary
     );
-    bool GetEmployee(int employee_id);
-    void ScanEmployees();
-    void RunWorkload(int count, int delay_ms);
-    void ShowBufferPool() const;
-    void ShowFreeSpaceMap() const;
-    void ShowMetrics() const;
+
     bool InsertLargeEmployee(int employee_id);
-bool TouchEmployee(int employee_id);
-bool TimedGetEmployee(int employee_id);
-bool DeleteEmployee(int employee_id);
-void ShowLRUK() const;
-    void FlushAll();
-    void ExportMetrics() const;
+
+    bool GetEmployee(int employee_id);
+
+    bool TimedGetEmployee(int employee_id);
+
+    bool TouchEmployee(int employee_id);
+
+    bool DeleteEmployee(int employee_id);
+
+    void ExplainTuple(
+        int employee_id,
+        const std::string& name,
+        const std::string& department,
+        int salary
+    );
+
+    void ScanEmployees();
+
+    void RunWorkload(int count, int delay_ms);
+
+    void ShowBufferPool() const;
+
+    void ShowFreeSpaceMap() const;
+
+    void ShowMetrics() const;
+
     void ShowPage(page_id_t page_id);
-void ShowState() const;
-void ExplainTuple(
-    int employee_id,
-    const std::string& name,
-    const std::string& department,
-    int salary
-);
+
+    void ShowState() const;
+
+    void ShowLRUK() const;
+
+    void FlushAll();
+
+    void ExportMetrics() const;
+
 private:
     bool InsertEmployeeTuple(const EmployeeTuple& emp, bool print_result);
+
     EmployeeTuple CreateGeneratedEmployee(int id) const;
+
     DiskManager disk_;
+
     BufferPoolManager buffer_pool_;
+
     FreeSpaceMap fsm_;
-std::unordered_map<int, RID> employee_index_;
+
+    std::unordered_map<int, RID> employee_index_;
 
     std::vector<RID> all_rids_;
-long insert_count_;
 
+    long insert_count_;
     long read_count_;
     long scan_count_;
+    long delete_count_;
 
     int next_generated_id_;
+
     std::string metrics_file_;
 };

@@ -1,0 +1,60 @@
+{"ts_ms":1783808403209,"type":"serialize","message":"Logical row converted into serialized bytes","hex_preview":"65 00 00 00 06 00 53 69 6E 64 68 75 ...","tuple_size_bytes":"20","salary":"70000","department":"CS","name":"Sindhu","employee_id":"101"}
+{"ts_ms":1783808419493,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"20","salary":"70000","department":"Cs","name":"Sindhu","employee_id":"101"}
+{"ts_ms":1783808419494,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"28","employee_id":"101"}
+{"ts_ms":1783808419495,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808419495,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"4060","dirty":"true","tuple_size_bytes":"20","tuple_offset":"4076","slot_count":"1","slot_id":"0","page_id":"0","employee_id":"101"}
+{"ts_ms":1783808429908,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808429909,"type":"show_page","message":"Slotted page layout inspected","free_space_bytes":"4060","slot_count":"1","page_id":"0"}
+{"ts_ms":1783808442627,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"18","salary":"8000","department":"rr","name":"alex","employee_id":"102"}
+{"ts_ms":1783808442628,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"26","employee_id":"102"}
+{"ts_ms":1783808442628,"type":"fsm_reuse","message":"FSM selected an existing page with enough free space","free_space_bytes":"4060","page_id":"0"}
+{"ts_ms":1783808442629,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808442629,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"4034","dirty":"true","tuple_size_bytes":"18","tuple_offset":"4058","slot_count":"2","slot_id":"1","page_id":"0","employee_id":"102"}
+{"ts_ms":1783808455092,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50201","department":"LRUK","name":"EMP_201_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"201"}
+{"ts_ms":1783808455093,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"201"}
+{"ts_ms":1783808455093,"type":"fsm_reuse","message":"FSM selected an existing page with enough free space","free_space_bytes":"4034","page_id":"0"}
+{"ts_ms":1783808455093,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808455093,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"22","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"54","slot_count":"3","slot_id":"2","page_id":"0","employee_id":"201"}
+{"ts_ms":1783808467215,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50202","department":"LRUK","name":"EMP_202_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"202"}
+{"ts_ms":1783808467216,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"202"}
+{"ts_ms":1783808467216,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"1","page_id":"1"}
+{"ts_ms":1783808467217,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"76","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"92","slot_count":"1","slot_id":"0","page_id":"1","employee_id":"202"}
+{"ts_ms":1783808481460,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50203","department":"LRUK","name":"EMP_203_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"203"}
+{"ts_ms":1783808481461,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"203"}
+{"ts_ms":1783808481462,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"0","page_id":"2"}
+{"ts_ms":1783808481462,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"76","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"92","slot_count":"1","slot_id":"0","page_id":"2","employee_id":"203"}
+{"ts_ms":1783808494825,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808494826,"type":"timed_fetch","message":"Memory fetch through buffer pool","fetch_time_us":"882","fetch_path":"BUFFER_HIT_MEMORY","slot_id":"0","page_id":"0","employee_id":"101"}
+{"ts_ms":1783808506233,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808506235,"type":"timed_fetch","message":"Memory fetch through buffer pool","fetch_time_us":"1285","fetch_path":"BUFFER_HIT_MEMORY","slot_id":"1","page_id":"0","employee_id":"102"}
+{"ts_ms":1783808531304,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50205","department":"LRUK","name":"EMP_205_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"205"}
+{"ts_ms":1783808531304,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"205"}
+{"ts_ms":1783808531305,"type":"lruk_eviction","message":"LRU-K selected a victim frame","dirty":"true","victim_page":"1","victim_frame":"1"}
+{"ts_ms":1783808531305,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"1","page_id":"1"}
+{"ts_ms":1783808531306,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"1","page_id":"3"}
+{"ts_ms":1783808531307,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"76","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"92","slot_count":"1","slot_id":"0","page_id":"3","employee_id":"205"}
+{"ts_ms":1783808544150,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50206","department":"LRUK","name":"EMP_206_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"206"}
+{"ts_ms":1783808544151,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"206"}
+{"ts_ms":1783808544151,"type":"lruk_eviction","message":"LRU-K selected a victim frame","dirty":"true","victim_page":"2","victim_frame":"0"}
+{"ts_ms":1783808544152,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"0","page_id":"2"}
+{"ts_ms":1783808544153,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"0","page_id":"4"}
+{"ts_ms":1783808544154,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"76","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"92","slot_count":"1","slot_id":"0","page_id":"4","employee_id":"206"}
+{"ts_ms":1783808551675,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"1","page_id":"3"}
+{"ts_ms":1783808551676,"type":"timed_fetch","message":"Memory fetch through buffer pool","fetch_time_us":"1100","fetch_path":"BUFFER_HIT_MEMORY","slot_id":"0","page_id":"3","employee_id":"205"}
+{"ts_ms":1783808557358,"type":"buffer_hit","message":"Page found in buffer pool memory","pin_count":"1","dirty":"true","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808557359,"type":"timed_fetch","message":"Memory fetch through buffer pool","fetch_time_us":"1100","fetch_path":"BUFFER_HIT_MEMORY","slot_id":"2","page_id":"0","employee_id":"201"}
+{"ts_ms":1783808563683,"type":"buffer_miss","message":"Page not found in memory, reading from disk","page_id":"2"}
+{"ts_ms":1783808563683,"type":"lruk_eviction","message":"LRU-K selected a victim frame","dirty":"true","victim_page":"4","victim_frame":"0"}
+{"ts_ms":1783808563684,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"0","page_id":"4"}
+{"ts_ms":1783808563685,"type":"page_loaded","message":"Page loaded from disk into buffer frame","frame_id":"0","page_id":"2"}
+{"ts_ms":1783808563685,"type":"timed_fetch","message":"Disk fetch through DiskManager","fetch_time_us":"3106","fetch_path":"BUFFER_MISS_DISK","slot_id":"0","page_id":"2","employee_id":"203"}
+{"ts_ms":1783808583813,"type":"serialize","message":"Record serialized into bytes for insert","tuple_size_bytes":"4004","salary":"50207","department":"LRUK","name":"EMP_207_XXXXXXXXXXXXXXXXXXXXXX...","employee_id":"207"}
+{"ts_ms":1783808583813,"type":"fsm_check","message":"Free Space Map checks for a page with enough space","required_space_bytes":"4012","employee_id":"207"}
+{"ts_ms":1783808583814,"type":"lruk_eviction","message":"LRU-K selected a victim frame","dirty":"false","victim_page":"2","victim_frame":"0"}
+{"ts_ms":1783808583814,"type":"page_allocate","message":"New page allocated and loaded into buffer frame","dirty":"true","frame_id":"0","page_id":"5"}
+{"ts_ms":1783808583815,"type":"insert","message":"Tuple inserted into slotted page","page_free_space_bytes":"76","dirty":"true","tuple_size_bytes":"4004","tuple_offset":"92","slot_count":"1","slot_id":"0","page_id":"5","employee_id":"207"}
+{"ts_ms":1783808603907,"type":"flush_start","message":"Flush all dirty pages requested"}
+{"ts_ms":1783808603908,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"0","page_id":"5"}
+{"ts_ms":1783808603909,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"1","page_id":"3"}
+{"ts_ms":1783808603910,"type":"dirty_flush","message":"Dirty page flushed to disk","frame_id":"2","page_id":"0"}
+{"ts_ms":1783808603911,"type":"flush_complete","message":"Flush all dirty pages completed"}
